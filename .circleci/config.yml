@@ -9,6 +9,7 @@ jobs:
       - checkout
       - node/with-cache:
           steps:
+            - run: apk install openjdk14-jre || apt-get install openjdk14-jre || dnf install openjdk14-jre
             - run: npm install
             - run: npm run make-cypher
             - run: npm run build
