@@ -1,0 +1,10 @@
+neo4j:
+  type: neo4j
+  url: bolt://localhost:7687
+  username: neo4j
+  password: <PASSWORD>
+
+rgraph:
+  type: redis-graph
+  key: graph-db
+#  password: <PASSWORD>

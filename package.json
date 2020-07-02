@@ -1,0 +1,32 @@
+{
+  "name": "cypher-backup",
+  "version": "1.0.0",
+  "description": "",
+  "main": "build/index.js",
+  "bin": "build/index.js",
+  "scripts": {
+    "start": "node build/index.js",
+    "dev": "ts-node src/index.ts",
+    "make-cypher": "wget https://s3.amazonaws.com/artifacts.opencypher.org/Cypher.g4 && antlr4ts -o ./src/drivers/redis-graph/opencypher ./Cypher.g4 ; rm Cypher.g4",
+    "build": "tsc && sed -i '1s/^/#!\\/usr\\/bin\\/env node\\n/' build/index.js",
+    "postinstall": "npm run make-cypher && npm run build"
+  },
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "antlr4ts": "^0.5.0-alpha.3",
+    "antlr4ts-cli": "^0.5.0-alpha.3",
+    "neo4j-driver": "^4.1.0",
+    "nexline": "^1.2.0",
+    "redis": "^2.8.0",
+    "ts-node": "^8.10.2",
+    "typescript": "^3.9.5",
+    "yaml": "^1.10.0",
+    "yargs": "^15.3.1"
+  },
+  "devDependencies": {
+    "@types/yargs": "^15.0.5",
+    "@types/node": "13.1.0",
+    "@types/redis": "^2.8.22"
+  }
+}
