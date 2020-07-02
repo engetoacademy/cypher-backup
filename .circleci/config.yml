@@ -10,8 +10,8 @@ jobs:
       - node/with-cache:
           steps:
             - run: npm install
-            - run: npm make-cypher
-            - run: npm build
+            - run: npm run make-cypher
+            - run: npm run build
             - run: npm config set //registry.npmjs.org/:_authToken=$NPM_TOKEN
             - run: npm publish
               
