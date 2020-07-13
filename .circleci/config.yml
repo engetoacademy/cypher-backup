@@ -4,7 +4,7 @@ jobs:
     docker:
       - image: node:alpine
     steps:
-      - run: apk add openjdk14-jre
+      - run: apk add openjdk11-jre
       - checkout
       - run: npm install
       - run: npm run make-cypher
