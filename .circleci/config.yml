@@ -4,15 +4,13 @@ jobs:
     docker:
       - image: node:alpine
     steps:
+      - run: apk add openjdk14-jre
       - checkout
-      - node/with-cache:
-          steps:
-            - run: apk add openjdk14-jre
-            - run: npm install
-            - run: npm run make-cypher
-            - run: npm run build
-            - run: npm config set //registry.npmjs.org/:_authToken=$NPM_TOKEN
-            - run: npm publish
+      - run: npm install
+      - run: npm run make-cypher
+      - run: npm run build
+      - run: npm config set //registry.npmjs.org/:_authToken=$NPM_TOKEN
+      - run: npm publish
               
 workflows:
     build-and-publish:
