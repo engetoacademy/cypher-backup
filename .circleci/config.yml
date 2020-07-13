@@ -1,0 +1,18 @@
+version: 2.1
+jobs:
+  build-and-publish:
+    docker:
+      - image: node:alpine
+    steps:
+      - run: apk add openjdk11-jre
+      - checkout
+      - run: npm install
+      - run: npm run make-cypher
+      - run: npm run build
+      - run: npm config set //registry.npmjs.org/:_authToken=$NPM_TOKEN
+      - run: npm publish
+              
+workflows:
+    build-and-publish:
+      jobs:
+        - build-and-publish

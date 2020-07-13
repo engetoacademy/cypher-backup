@@ -8,8 +8,7 @@
     "start": "node build/index.js",
     "dev": "ts-node src/index.ts",
     "make-cypher": "wget https://s3.amazonaws.com/artifacts.opencypher.org/Cypher.g4 && antlr4ts -o ./src/drivers/redis-graph/opencypher ./Cypher.g4 ; rm Cypher.g4",
-    "build": "tsc && sed -i '1s/^/#!\\/usr\\/bin\\/env node\\n/' build/index.js",
-    "postinstall": "npm run make-cypher && npm run build"
+    "build": "tsc && sed -i '1s/^/#!\\/usr\\/bin\\/env node\\n/' build/index.js"
   },
   "author": "",
   "license": "ISC",
