@@ -85,7 +85,7 @@ async function readRelationships(lineReader: nexline, relationshipsLine: string|
     for (
         let line = await lineReader.next();
         line !== null;
-        line = await lineReader.next(), count++
+        line = await lineReader.next()
     ) {
         if (!line.length) { // permit empty lines at end of file
             continue
@@ -104,6 +104,7 @@ async function readRelationships(lineReader: nexline, relationshipsLine: string|
             CREATE (m)-[${safeType} ${safeProperties}]->(n)
         `, {from, to});
 
+        count++;
         progress.increment();
     }
     progress.end();
