@@ -3,6 +3,7 @@ import {createReadStream, ReadStream} from "fs";
 import nexline from "nexline";
 import {makeDriver} from "./drivers/makeDriver";
 import {Driver, Node, Properties, Relationship} from "./drivers/IDriver";
+import {startProgress} from './util/progress';
 
 async function flushAll(driver: Driver) {
     await driver.query("MATCH (n) DETACH DELETE n");
@@ -26,12 +27,25 @@ function makeSafeType(label: string) {
 }
 
 async function readNodes(lineReader: nexline, driver: Driver) {
+    const firstLineRegex = /^NODES \((\d+)\)$/
     const nodeRegex = /^(\d+) (.*)$/;
 
+    const firstLine = await lineReader.next();
+    const match = firstLineRegex.exec(firstLine!);
+    if (!match) {
+        throw new Error("Expected first line to be 'NODES (<count>)'")
+    }
+    const expectedCount = parseInt(match[1]);
+
+    console.log(`Importing ${expectedCount} nodes`);
+
+    const progress = startProgress(expectedCount);
+
     let count = 0;
+    let line = await lineReader.next();
     for (
-        let line = await lineReader.next();
-        line !== null && line !== "RELATIONSHIPS";
+        ;
+        line !== null && !line.startsWith("RELATIONSHIPS ");
         line = await lineReader.next(), count++
     ) {
         const [_, id, nodejson] = nodeRegex.exec(line) || []
@@ -46,23 +60,36 @@ async function readNodes(lineReader: nexline, driver: Driver) {
         const safeProperties = makeSafeProperties({...node.properties, __import_original_id: id});
 
         await driver.query(`CREATE (${safeLabels} ${safeProperties})`);
+
+        progress.increment();
     }
+    progress.end();
     console.log(`Created ${count} nodes`);
+    return line;
 }
 
-async function readRelationships(lineReader: nexline, driver: Driver) {
+async function readRelationships(lineReader: nexline, relationshipsLine: string|null, driver: Driver) {
+    const firstLineRegex = /^RELATIONSHIPS \((\d+)\)$/
     const relRegex = /^(\d+) (\d+) (.*)$/;
 
-    let count = 0;
+    const match = firstLineRegex.exec(relationshipsLine ?? "");
+    if (!match) {
+        throw new Error("Expected first line after all nodes to be 'RELATIONSHIPS (<count>)'")
+    }
+    const expectedCount = parseInt(match[1]);
+
+    console.log(`Importing ${expectedCount} relationships`);
+    const progress = startProgress(expectedCount);
+
+    let count=0
     for (
         let line = await lineReader.next();
         line !== null;
         line = await lineReader.next(), count++
     ) {
-        if (!line.length) {
+        if (!line.length) { // permit empty lines at end of file
             continue
         }
-
         const [_, from, to, reljson] = relRegex.exec(line) || [];
 
         const rel: Relationship = JSON.parse(reljson);
@@ -77,22 +104,20 @@ async function readRelationships(lineReader: nexline, driver: Driver) {
             CREATE (m)-[${safeType} ${safeProperties}]->(n)
         `, {from, to});
 
+        progress.increment();
     }
+    progress.end();
     console.log(`Created ${count} relationships`)
 }
 
 async function runImport(infile: ReadStream, driver: Driver) {
     const lineReader = new nexline({input: infile});
 
-    if (await lineReader.next() !== "NODES") {
-        throw new RangeError("Expected first line of file to be 'NODES'");
-    }
-
     await flushAll(driver);
 
-    await readNodes(lineReader, driver);
+    const relationshipsLine = await readNodes(lineReader, driver);
 
-    await readRelationships(lineReader, driver);
+    await readRelationships(lineReader, relationshipsLine, driver);
 }
 
 export async function importCmd(argv: { $0: string, source: string, destination: string }) {

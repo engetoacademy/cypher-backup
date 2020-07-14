@@ -2,34 +2,65 @@ import {databases} from "./config";
 import {makeDriver} from "./drivers/makeDriver";
 import {Driver, Node, Relationship} from "./drivers/IDriver";
 import {promises as fs} from "fs";
+import {startProgress} from './util/progress';
 
 
 async function exportNodes(outfile: fs.FileHandle, driver: Driver) {
-    await outfile.write("NODES\n");
-    const nodes = await driver.query<{ n: Node, id: number }>("MATCH (n) RETURN n, id(n) AS id");
-    console.info(`Exporting ${nodes.length} nodes`);
+    const [{count}] = await driver.query<{ count: number }>("MATCH (n) RETURN count(n) as `count`");
+    await outfile.write(`NODES (${count})\n`);
+    console.info(`Exporting ${count} nodes`);
 
-    for (const row of nodes) {
-        const obj = {
-            labels: row.n.labels,
-            properties: row.n.properties
-        };
-        await outfile.write(`${row.id} ${JSON.stringify(obj)}\n`);
+
+    const progress = startProgress(count, 100);
+
+
+    const chunk = 5_000;
+    for (let offset = 0; ; offset += chunk) {
+        const nodes = await driver.query<{ n: Node, id: number }>(`MATCH (n) RETURN n, id(n) AS id SKIP ${offset} LIMIT ${chunk}`);
+
+        if (nodes.length === 0) {
+            break;
+        }
+
+        for (const row of nodes) {
+            const obj = {
+                labels: row.n.labels,
+                properties: row.n.properties
+            };
+            await outfile.write(`${row.id} ${JSON.stringify(obj)}\n`);
+            progress.increment();
+        }
     }
+    progress.end();
 }
 
 async function exportRelationships(outfile: fs.FileHandle, driver: Driver) {
-    await outfile.write("RELATIONSHIPS\n")
-    const rels = await driver.query<{ source: number, r: Relationship, target: number }>("MATCH (m)-[r]->(n) RETURN id(m) AS source, r, id(n) AS target");
-    console.info(`Exporting ${rels.length} relationships`);
+    const [{count}] = await driver.query<{ count: number }>("MATCH (m)-[r]->(n) RETURN count(r) as `count`");
+    await outfile.write(`RELATIONSHIPS (${count})\n`);
+    console.info(`Exporting ${count} relationships`);
 
-    for (const row of rels) {
-        const obj = {
-            type: row.r.type,
-            properties: row.r.properties
+    const progress = startProgress(count, 100);
+    const chunk = 5_000;
+    for (let offset = 0; ; offset += chunk) {
+        const rels = await driver.query<{ source: number, r: Relationship, target: number }>(
+            `MATCH (m)-[r]->(n) RETURN id(m) AS source, r, id(n) AS target SKIP ${offset} LIMIT ${chunk}`
+        );
+
+        if (rels.length === 0) {
+            break;
         }
-        await outfile.write(`${row.source} ${row.target} ${JSON.stringify(obj)}\n`);
+
+        for (const row of rels) {
+            const obj = {
+                type: row.r.type,
+                properties: row.r.properties
+            }
+            await outfile.write(`${row.source} ${row.target} ${JSON.stringify(obj)}\n`);
+
+            progress.increment();
+        }
     }
+    progress.end();
 }
 
 async function runExport(outfile: fs.FileHandle, driver: Driver) {
