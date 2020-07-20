@@ -13,9 +13,13 @@ export function startProgress(total: number, step: number = 50): Progress {
         if (!force && Math.abs(lastDisplayed - current) < step) {
             return;
         }
-        process.stdout.clearLine(-1)
-        process.stdout.cursorTo(0)
-        process.stdout.write(`${current} / ${total}`);
+        if (process.stdout.isTTY) {
+            process.stdout.clearLine(-1)
+            process.stdout.cursorTo(0)
+            process.stdout.write(`${current} / ${total}`);
+        } else if (force) {
+            process.stdout.write(`${current} / ${total}`);
+        }
         lastDisplayed = current;
     }
 
