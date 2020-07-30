@@ -6,11 +6,11 @@ import {Listener, ParameterOccurrence} from "./ParseListener";
 class SyntaxError extends Error {
 }
 
-export type RedisGraphInputType = string | number | boolean | RedisGraphInputType[] | null;
+export type RedisGraphValue = string | number | boolean | null | RedisGraphValue[];
 export const QueryTemplate = (
     source: string, parameterOccurrences: ParameterOccurrence[]
 ) => (
-    params: { [param: string]: RedisGraphInputType }
+    params: { [param: string]: RedisGraphValue }
 ) => {
     function verifyValuesArePresent() {
         let missingKeys = new Set();
@@ -41,7 +41,7 @@ export const QueryTemplate = (
     return o.reduce(applyParam, source)
 }
 
-export function parametrize(statement: string) {
+export function parametrize(statement) {
     const input = new ANTLRInputStream(statement);
     const lexer = new CypherLexer(input);
     const tokenStream = new CommonTokenStream(lexer);

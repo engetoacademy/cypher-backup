@@ -1,7 +1,7 @@
 import {DatabaseConfigRecord} from "../config";
 import { Driver } from "./IDriver";
 import {Neo4jDriver} from "./neo4j";
-import {RedisGraph} from "./redis-graph";
+import {RedisGraph} from "./redis-graph/redis-graph";
 
 export function makeDriver(config: DatabaseConfigRecord & object): Driver {
     if (config.type === "neo4j") {
