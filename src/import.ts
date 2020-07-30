@@ -26,9 +26,20 @@ function makeSafeType(label: string) {
         "`";
 }
 
+async function indexNodes(nodeLabels: Set<string>, driver: Driver) {
+    console.log(`Will index ${nodeLabels.size} labels`);
+    const progress = startProgress(nodeLabels.size, 1);
+    for (let label of nodeLabels) {
+        await driver.query(`CREATE INDEX ON :${makeSafeType(label)}(__import_original_id)`)
+        progress.increment()
+    }
+    progress.end();
+}
+
 async function readNodes(lineReader: nexline, driver: Driver) {
     const firstLineRegex = /^NODES \((\d+)\)$/
     const nodeRegex = /^(\d+) (.*)$/;
+    const nodeLabels = new Set<string>();
 
     const firstLine = await lineReader.next();
     const match = firstLineRegex.exec(firstLine!);
@@ -52,6 +63,10 @@ async function readNodes(lineReader: nexline, driver: Driver) {
 
         const node: Node = JSON.parse(nodejson);
 
+        for (let label of node.labels) {
+            nodeLabels.add(label);
+        }
+
         const safeLabels = node.labels
             .map(label => makeSafeType(label))
             .join('')
@@ -65,10 +80,12 @@ async function readNodes(lineReader: nexline, driver: Driver) {
     }
     progress.end();
     console.log(`Created ${count} nodes`);
+
+    await indexNodes(nodeLabels, driver);
     return line;
 }
 
-async function readRelationships(lineReader: nexline, relationshipsLine: string|null, driver: Driver) {
+async function readRelationships(lineReader: nexline, relationshipsLine: string | null, driver: Driver) {
     const firstLineRegex = /^RELATIONSHIPS \((\d+)\)$/
     const relRegex = /^(\d+) (\d+) (.*)$/;
 
@@ -81,7 +98,7 @@ async function readRelationships(lineReader: nexline, relationshipsLine: string|
     console.log(`Importing ${expectedCount} relationships`);
     const progress = startProgress(expectedCount);
 
-    let count=0
+    let count = 0
     for (
         let line = await lineReader.next();
         line !== null;
