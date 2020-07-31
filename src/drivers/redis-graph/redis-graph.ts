@@ -4,6 +4,7 @@ import {ResultBuilder} from "./ResultBuilder";
 import {RedisGraphConfigRecord} from "../../config";
 import {log} from "util";
 import {Driver} from "../IDriver";
+import {makeSafePropName, makeSafeType} from "../../util/sanitize";
 
 
 type RedisGraphResponse<T extends object> = [
@@ -65,5 +66,16 @@ export class RedisGraph implements Driver {
         return template;
     }
 
-    disconnect = this.redis.quit;
+    async disconnect() {
+        if (this.redis) {
+            await this.redis.quit();
+        }
+    };
+
+    async index(label: string, property: string) {
+        await this.redis.sendCommand(
+            "GRAPH.QUERY",
+            ["portal-graph", `CREATE INDEX ON ${makeSafeType(label)}(${makeSafePropName(property)})`, "--compact"]
+        )
+    }
 }

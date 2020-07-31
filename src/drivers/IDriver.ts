@@ -20,5 +20,6 @@ export type AnyRow = {
 
 export interface Driver {
     query<T extends AnyRow >(cypher: string, params?: Properties): Promise<T[]>
+    index(label: string, property: string): Promise<void>
     disconnect(): Promise<void>
 }

@@ -2,35 +2,19 @@ import {databases} from "./config";
 import {createReadStream, ReadStream} from "fs";
 import nexline from "nexline";
 import {makeDriver} from "./drivers/makeDriver";
-import {Driver, Node, Properties, Relationship} from "./drivers/IDriver";
+import {Driver, Node, Relationship} from "./drivers/IDriver";
 import {startProgress} from './util/progress';
+import {makeSafeProperties, makeSafeType} from "./util/sanitize";
 
 async function flushAll(driver: Driver) {
     await driver.query("MATCH (n) DETACH DELETE n");
-}
-
-function makeSafeProperties(properties: Properties) {
-    return "{" +
-        Object.entries(properties).map(([prop, value]) =>
-            "`" +
-            prop.replace(/`/g, "``") +
-            "`:" +
-            JSON.stringify(value)
-        ).join(",") +
-        "}";
-}
-
-function makeSafeType(label: string) {
-    return ":`" +
-        label.replace(/`/g, "``") +
-        "`";
 }
 
 async function indexNodes(nodeLabels: Set<string>, driver: Driver) {
     console.log(`Will index ${nodeLabels.size} labels`);
     const progress = startProgress(nodeLabels.size, 1);
     for (let label of nodeLabels) {
-        await driver.query(`CREATE INDEX ON :${makeSafeType(label)}(__import_original_id)`)
+        await driver.index(label, "__import_original_id")
         progress.increment()
     }
     progress.end();

@@ -1,6 +1,7 @@
 import {AnyRow, Driver, Properties} from "./IDriver";
 import neo4j, {Driver as NDriver} from "neo4j-driver";
 import {Neo4jConfigRecord} from "../config";
+import {makeSafePropName, makeSafeType} from "../util/sanitize";
 
 function convertIntegerToNumber(obj: { [key: string]: any }) {
     for (let [key, val] of Object.entries(obj)) {
@@ -34,5 +35,13 @@ export class Neo4jDriver implements Driver {
 
     async disconnect(): Promise<void> {
         await this.driver.close();
+    }
+
+    async index(label: string, property: string): Promise<void> {
+        await this.query(
+            `CREATE INDEX ${makeSafePropName(label+"__"+property)} 
+            FOR (n${makeSafeType(label)}) 
+            ON (n.${makeSafePropName(property)}) 
+        `)
     }
 }

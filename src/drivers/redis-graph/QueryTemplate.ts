@@ -41,7 +41,7 @@ export const QueryTemplate = (
     return o.reduce(applyParam, source)
 }
 
-export function parametrize(statement) {
+export function parametrize(statement:string) {
     const input = new ANTLRInputStream(statement);
     const lexer = new CypherLexer(input);
     const tokenStream = new CommonTokenStream(lexer);
